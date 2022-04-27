@@ -22,6 +22,9 @@ func RunContainerInitProcess() error {
 
 	// setUpMount()
 
+	// systemd加入linux后，mount namespace就变成shared by default，
+	// 所以你必须显式声明你要这个新的mount namespace独立
+	syscall.Mount("", "/", "", syscall.MS_PRIVATE | syscall.MS_REC, "")
 	defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
 	syscall.Mount("proc", "/proc", "proc", uintptr(defaultMountFlags), "")
 	path, err := exec.LookPath(cmdArray[0])
