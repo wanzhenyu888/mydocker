@@ -3,12 +3,13 @@ package container
 import (
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
 	readPipe, writePipe, err := NewPipe()
 	if err != nil {
 		log.Errorf("New pipe error %v", err)
@@ -27,7 +28,7 @@ func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
 	cmd.ExtraFiles = []*os.File{readPipe}
 	mntURL := "/root/mnt/"
 	rootURL := "/root/"
-	NewWorkSpace(rootURL, mntURL)
+	NewWorkSpace(rootURL, mntURL, volume)
 	cmd.Dir = mntURL
 	return cmd, writePipe
 }
@@ -41,10 +42,53 @@ func NewPipe() (*os.File, *os.File, error) {
 }
 
 // Create a AUFS filesystem as a container root workspace
-func NewWorkSpace(rootURL, mntURL string) {
+func NewWorkSpace(rootURL, mntURL, volume string) {
 	CreateReadOnlyLayer(rootURL)
 	CreateWriteLayer(rootURL)
 	CreateMountPoint(rootURL, mntURL)
+	// 根据volume判断是否执行挂载数据卷操作
+	if volume != "" {
+		volumeURLs := volumeUrlExtract(volume)
+		length := len(volumeURLs)
+		if length == 2 && volumeURLs[0] != "" && volumeURLs[1] != "" {
+			MountVolume(rootURL, mntURL, volumeURLs)
+			log.Infof("%q", volumeURLs)
+		} else {
+			log.Infof("Volume parameter input is not correct.")
+		}
+	}
+}
+
+// 挂载volume数据卷
+func MountVolume(rootURL string, mntURL string, volumeURLs []string) {
+	// 创建宿主机文件目录
+	parentUrl := volumeURLs[0]
+	if err := os.Mkdir(parentUrl, 0o777); err != nil {
+		log.Infof("Mkdir parent dir %s error. %v", parentUrl, err)
+	}
+
+	// 在容器文件系统里创建挂载点
+	containerUrl := volumeURLs[1]
+	containerVolumeURL := mntURL + containerUrl
+	if err := os.Mkdir(containerVolumeURL, 0o777); err != nil {
+		log.Infof("Mkdir container dir %s error. %v", containerVolumeURL, err)
+	}
+
+	// 把宿主机文件目录挂载到容器挂载点
+	dirs := "dirs=" + parentUrl
+	cmd := exec.Command("mount", "-t", "aufs", "-o", dirs, "none", containerVolumeURL)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Errorf("Mount volume failed. %v", err)
+	}
+}
+
+// 解析volume字符串
+func volumeUrlExtract(volume string) []string {
+	var volumeURLs []string
+	volumeURLs = strings.Split(volume, ":")
+	return volumeURLs
 }
 
 // 将busybox.tar解压到busybox目录下，作为容器的只读层
@@ -90,9 +134,44 @@ func CreateMountPoint(rootURL string, mntURL string) {
 }
 
 // Delete the AUFS filesystem while container exit
-func DeleteWorkSpace(rootURL, mntURL string) {
-	DeleteMountPoint(mntURL)
+func DeleteWorkSpace(rootURL, mntURL, volume string) {
+	if volume != "" {
+		volumeURLs := volumeUrlExtract(volume)
+		length := len(volumeURLs)
+		if length == 2 && volumeURLs[0] != "" && volumeURLs[1] != "" {
+			DeleteMountPointWithVolume(rootURL, mntURL, volumeURLs)
+		} else {
+			DeleteMountPoint(mntURL)
+		}
+	} else {
+		DeleteMountPoint(mntURL)
+	}
 	DeleteWriteLayer(rootURL)
+}
+
+// 有数据卷的情况下，容器退出处理
+func DeleteMountPointWithVolume(rootURL string, mntURL string, volumeURLs []string) {
+	// 卸载容器里volume挂载点的文件系统
+	containerUrl := mntURL + volumeURLs[1]
+	cmd := exec.Command("umount", containerUrl)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Errorf("Umount volume failed. %v", err)
+	}
+
+	// 卸载整个容器文件系统的挂载点
+	cmd = exec.Command("umount", mntURL)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Errorf("Umount volume failed. %v", err)
+	}
+
+	// 删除容器文件系统挂载点
+	if err := os.RemoveAll(mntURL); err != nil {
+		log.Infof("Remove mountpoint dir %s error %v", mntURL, err)
+	}
 }
 
 // 取消挂载并删除/root/mnt文件夹
