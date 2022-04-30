@@ -78,3 +78,18 @@ var initCommand = cli.Command{
 		return err
 	},
 }
+
+// commitCommand 用于容器退出时，把运行状态容器的内容
+// 存储成镜像保存起来
+var commitCommand = cli.Command {
+	Name: "commit",
+	Usage: "commit a container into image",
+	Action: func(context *cli.Context) error {
+		if len(context.Args()) < 1 {
+			return fmt.Errorf("Missing container name")
+		}
+		imageNmae := context.Args().Get(0)
+		commitContainer(imageNmae)
+		return nil
+	},
+}
