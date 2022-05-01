@@ -27,11 +27,9 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume str
 	cgroupManager.Apply(parent.Process.Pid)
 
 	sendInitCommand(cmdArray, writePipe)
-	parent.Wait()
-	mntURL := "/root/mnt/"
-	rootURL := "/root/"
-	container.DeleteWorkSpace(rootURL, mntURL, volume)
-	os.Exit(0)
+	if tty {
+		parent.Wait() // 如果是交互式创建容器，用于父进程等待子进程结束
+	}
 }
 
 func sendInitCommand(comArray []string, writePipe *os.File) {

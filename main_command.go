@@ -20,6 +20,10 @@ var runCommand = cli.Command{
 			Name:  "ti",
 			Usage: "enable tty",
 		},
+		cli.BoolFlag{
+			Name:  "d",
+			Usage: "detach container",
+		},
 		cli.StringFlag{
 			Name:  "m",
 			Usage: "memory limit",
@@ -51,12 +55,20 @@ var runCommand = cli.Command{
 		for _, arg := range context.Args() {
 			cmdArray = append(cmdArray, arg)
 		}
+
 		tty := context.Bool("ti")
+		detach := context.Bool("d")
+
+		// 这里的tty和detach不能共存
+		if tty && detach {
+			return fmt.Errorf("ti and d paramter can not both provided")
+		}
 		resConf := &subsystems.ResourceConfig{
 			MemoryLimit: context.String("m"),
 			CpuShare:    context.String("cpuset"),
 			CpuSet:      context.String("cpushare"),
 		}
+		log.Infof("tty %v", tty)
 		// 把volume参数传给Run函数
 		volume := context.String("v")
 		Run(tty, cmdArray, resConf, volume)
@@ -81,8 +93,8 @@ var initCommand = cli.Command{
 
 // commitCommand 用于容器退出时，把运行状态容器的内容
 // 存储成镜像保存起来
-var commitCommand = cli.Command {
-	Name: "commit",
+var commitCommand = cli.Command{
+	Name:  "commit",
 	Usage: "commit a container into image",
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
