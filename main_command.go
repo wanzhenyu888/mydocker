@@ -40,6 +40,10 @@ var runCommand = cli.Command{
 			Name:  "v",
 			Usage: "volume",
 		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "container name",
+		},
 	},
 	/*
 	 * 这里是run命令执行的真正函数
@@ -71,7 +75,9 @@ var runCommand = cli.Command{
 		log.Infof("tty %v", tty)
 		// 把volume参数传给Run函数
 		volume := context.String("v")
-		Run(tty, cmdArray, resConf, volume)
+		// 将取到的容器名称传递下去，如果没有则取到的值为空
+		containerName := context.String("name")
+		Run(tty, cmdArray, resConf, volume, containerName)
 		return nil
 	},
 }
@@ -102,6 +108,16 @@ var commitCommand = cli.Command{
 		}
 		imageNmae := context.Args().Get(0)
 		commitContainer(imageNmae)
+		return nil
+	},
+}
+
+// docker ps 展示正在运行的容器信息
+var listCommand = cli.Command{
+	Name:  "ps",
+	Usage: "list all the containers",
+	Action: func(context *cli.Context) error {
+		ListContainers()
 		return nil
 	},
 }
