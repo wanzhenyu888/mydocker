@@ -17,6 +17,7 @@ import (
 )
 
 func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume string, containerName string) {
+	
 	parent, writePipe := container.NewParentProcess(tty, volume, containerName)
 	if parent == nil {
 		log.Errorf("New parent process error")
