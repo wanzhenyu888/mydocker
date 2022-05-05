@@ -139,7 +139,7 @@ var logCommand = cli.Command{
 
 // execCommand 进入后台进程
 var execCommand = cli.Command{
-	Name: "exec",
+	Name:  "exec",
 	Usage: "exec a command into container",
 	Action: func(context *cli.Context) error {
 		// This is for callback
@@ -148,7 +148,7 @@ var execCommand = cli.Command{
 			log.Infof("pid callback pid %d", os.Getgid())
 			return nil
 		}
-		
+
 		// 命令格式是mydocker exec 容器名 命令
 		if len(context.Args()) < 2 {
 			return fmt.Errorf("Missing container name or command")
@@ -165,15 +165,28 @@ var execCommand = cli.Command{
 }
 
 var stopCommand = cli.Command{
-	Name: "stop",
+	Name:  "stop",
 	Usage: "stop a container",
-	Action: func (context *cli.Context) error {
+	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
 			return fmt.Errorf("Missing container name")
 		}
 
 		containerName := context.Args().Get(0)
 		stopContainer(containerName)
+		return nil
+	},
+}
+
+var removeCommand = cli.Command{
+	Name:  "rm",
+	Usage: "remove unused containers",
+	Action: func(context *cli.Context) error {
+		if len(context.Args()) < 1 {
+			return fmt.Errorf("Missing container name")
+		}
+		containerName := context.Args().Get(0)
+		removeContainer(containerName)
 		return nil
 	},
 }

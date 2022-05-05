@@ -15,14 +15,16 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-const ENV_EXEC_PID = "mydocker_pid"
-const ENV_EXEC_CMD = "mydocker_cmd"
+const (
+	ENV_EXEC_PID = "mydocker_pid"
+	ENV_EXEC_CMD = "mydocker_cmd"
+)
 
 func ExecContainer(containerName string, cmdArray []string) {
 	pid, err := getContainerPidByName(containerName)
 	if err != nil {
 		log.Errorf("Exec container getContainerPidByName %s error %v", containerName, err)
-		return	
+		return
 	}
 	// 把命令以空格为分隔符拼接成一个字符串，便于传递
 	cmdStr := strings.Join(cmdArray, " ")

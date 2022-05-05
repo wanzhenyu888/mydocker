@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strconv"
 	"syscall"
 
@@ -25,7 +26,7 @@ func stopContainer(containerName string) {
 	}
 	if err := syscall.Kill(pidInt, syscall.SIGTERM); err != nil {
 		log.Errorf("Stop container %s error %v", containerName, err)
-		return 
+		return
 	}
 	containerInfo, err := getContainerInfoByName(containerName)
 	if err != nil {
@@ -37,11 +38,11 @@ func stopContainer(containerName string) {
 	newContentBytes, err := json.Marshal(containerInfo)
 	if err != nil {
 		log.Errorf("Json marshal %s error %v", containerName, err)
-		return 
+		return
 	}
 	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
 	configFilePath := dirURL + container.ConfigName
-	if err := ioutil.WriteFile(configFilePath, newContentBytes, 0622); err != nil {
+	if err := ioutil.WriteFile(configFilePath, newContentBytes, 0o622); err != nil {
 		log.Errorf("Write file %s error", configFilePath, err)
 	}
 }
@@ -60,4 +61,21 @@ func getContainerInfoByName(containerName string) (*container.ContainerInfo, err
 		return nil, err
 	}
 	return &containerInfo, nil
+}
+
+func removeContainer(containerName string) {
+	containerInfo, err := getContainerInfoByName(containerName)
+	if err != nil {
+		log.Errorf("Get container %s info error %v", containerName, err)
+		return
+	}
+	if containerInfo.Status != container.STOP {
+		log.Errorf("Couldn't remove running container")
+		return
+	}
+	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+	if err := os.RemoveAll(dirURL); err != nil {
+		log.Errorf("Remove file %s error %v", dirURL, err)
+		return
+	}
 }
