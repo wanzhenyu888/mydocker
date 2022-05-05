@@ -41,15 +41,15 @@ func stopContainer(containerName string) {
 		return
 	}
 	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
-	configFilePath := dirURL + container.ConfigName
-	if err := ioutil.WriteFile(configFilePath, newContentBytes, 0o622); err != nil {
+	configFilePath := dirURL + "/" + container.ConfigName
+	if err := ioutil.WriteFile(configFilePath, newContentBytes, 0622); err != nil {
 		log.Errorf("Write file %s error", configFilePath, err)
 	}
 }
 
 func getContainerInfoByName(containerName string) (*container.ContainerInfo, error) {
 	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
-	configFilePath := dirURL + container.ConfigName
+	configFilePath := dirURL + "/" + container.ConfigName
 	contentBytes, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		log.Errorf("Read file %s error %v", configFilePath, err)

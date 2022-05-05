@@ -61,6 +61,10 @@ var runCommand = cli.Command{
 			cmdArray = append(cmdArray, arg)
 		}
 
+		// get image name
+		imageName := cmdArray[0]
+		cmdArray = cmdArray[1:]
+
 		tty := context.Bool("ti")
 		detach := context.Bool("d")
 
@@ -78,7 +82,7 @@ var runCommand = cli.Command{
 		volume := context.String("v")
 		// 将取到的容器名称传递下去，如果没有则取到的值为空
 		containerName := context.String("name")
-		Run(tty, cmdArray, resConf, volume, containerName)
+		Run(tty, cmdArray, resConf, volume, containerName, imageName)
 		return nil
 	},
 }
@@ -107,8 +111,9 @@ var commitCommand = cli.Command{
 		if len(context.Args()) < 1 {
 			return fmt.Errorf("Missing container name")
 		}
-		imageNmae := context.Args().Get(0)
-		commitContainer(imageNmae)
+		containerName := context.Args().Get(0)
+		imageNmae := context.Args().Get(1)
+		commitContainer(containerName, imageNmae)
 		return nil
 	},
 }

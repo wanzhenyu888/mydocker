@@ -47,7 +47,7 @@ func ExecContainer(containerName string, cmdArray []string) {
 // 根据容器名获取对应容器的PID
 func getContainerPidByName(containerName string) (string, error) {
 	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
-	configFilePath := dirURL + container.ConfigName
+	configFilePath := dirURL + "/" + container.ConfigName
 	contentBytes, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		return "", err

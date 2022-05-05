@@ -16,8 +16,13 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume string, containerName string) {
-	parent, writePipe := container.NewParentProcess(tty, volume, containerName)
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string) {
+	containerID := randStringBytes(10)
+	if containerName == "" {
+		containerName = containerID
+	}
+	
+	parent, writePipe := container.NewParentProcess(tty, containerName, volume, imageName)
 	if parent == nil {
 		log.Errorf("New parent process error")
 		return
@@ -27,7 +32,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume str
 	}
 
 	// 记录容器信息
-	containerName, err := recordContainerInfo(parent.Process.Pid, cmdArray, containerName)
+	containerName, err := recordContainerInfo(parent.Process.Pid, cmdArray, containerName, containerID, volume)
 	if err != nil {
 		log.Errorf("Record container info error %v", err)
 		return
@@ -41,26 +46,25 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume str
 
 	sendInitCommand(cmdArray, writePipe)
 	if tty {
-		parent.Wait() // 如果是交互式创建容器，用于父进程等待子进程结束
+		// 如果是交互式创建容器，用于父进程等待子进程结束
+		parent.Wait()
+
 		deleteContainerInfo(containerName)
+		container.DeleteWorkSpace(volume, containerName)
 	}
 }
 
-func sendInitCommand(comArray []string, writePipe *os.File) {
-	command := strings.Join(comArray, " ")
+func sendInitCommand(cmdArray []string, writePipe *os.File) {
+	command := strings.Join(cmdArray, " ")
 	log.Infof("command all is %s", command)
 	writePipe.WriteString(command)
 	writePipe.Close()
 }
 
 // recordContainerInfo 记录容器信息
-func recordContainerInfo(containerPID int, commandArray []string, containerName string) (string, error) {
-	id := randStringBytes(10)
+func recordContainerInfo(containerPID int, commandArray []string, containerName, id, volume string) (string, error) {
 	createTime := time.Now().Format("2006-01-02 15:04:05")
-	command := strings.Join(commandArray, "")
-	if containerName == "" {
-		containerName = id
-	}
+	command := strings.Join(commandArray, " ")
 	containerInfo := &container.ContainerInfo{
 		Pid:         strconv.Itoa(containerPID),
 		Id:          id,
@@ -68,6 +72,7 @@ func recordContainerInfo(containerPID int, commandArray []string, containerName 
 		Command:     command,
 		CreatedTime: createTime,
 		Status:      container.RUNNING,
+		Volume: 	 volume,	
 	}
 
 	jsonBytes, err := json.Marshal(containerInfo)
@@ -78,11 +83,11 @@ func recordContainerInfo(containerPID int, commandArray []string, containerName 
 	jsonStr := string(jsonBytes)
 
 	dirUrl := fmt.Sprintf(container.DefaultInfoLocation, containerName)
-	if err := os.MkdirAll(dirUrl, 0o622); err != nil {
+	if err := os.MkdirAll(dirUrl, 0622); err != nil {
 		log.Errorf("Mkdir error %s error %v", dirUrl, err)
 		return "", err
 	}
-	fileName := dirUrl + container.ConfigName
+	fileName := dirUrl + "/" + container.ConfigName
 	file, err := os.Create(fileName)
 	defer file.Close()
 	if err != nil {
@@ -98,8 +103,8 @@ func recordContainerInfo(containerPID int, commandArray []string, containerName 
 }
 
 // 删除容器相关信息
-func deleteContainerInfo(containerName string) {
-	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+func deleteContainerInfo(containerId string) {
+	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerId)
 	if err := os.RemoveAll(dirURL); err != nil {
 		log.Errorf("Remove dir %s error %v", dirURL, err)
 	}

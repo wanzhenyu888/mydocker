@@ -77,7 +77,7 @@ func pivotRoot(root string) error {
 	}
 	// 创建rootfs/.pivot_root存储old_root
 	pivotDir := filepath.Join(root, ".pivot_root")
-	if err := os.Mkdir(pivotDir, 0o777); err != nil {
+	if err := os.Mkdir(pivotDir, 0777); err != nil {
 		return err
 	}
 	// pivot_root到新的rootfs，现在老的old_root是挂载在rootfs/.pivot_root
