@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/wanzhenyu888/mydocker/container"
+	// 需要导入nsenter包，以触发C代码
+	_ "github.com/wanzhenyu888/mydocker/nsenter"
 
 	log "github.com/Sirupsen/logrus"
 )
