@@ -54,12 +54,12 @@ func setUpMount() {
 		return
 	}
 	log.Infof("current location is %s", pwd)
-	pivotRoot(pwd)
-
 	// mount proc
 	// systemd加入linux后，mount namespace就变成shared by default，
 	// 所以你必须显式声明你要这个新的mount namespace独立
-	// syscall.Mount("", "/", "", syscall.MS_PRIVATE | syscall.MS_REC, "")
+	syscall.Mount("", "/", "", syscall.MS_PRIVATE | syscall.MS_REC, "")
+	pivotRoot(pwd)
+
 	defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
 	syscall.Mount("proc", "/proc", "proc", uintptr(defaultMountFlags), "")
 
@@ -67,9 +67,6 @@ func setUpMount() {
 }
 
 func pivotRoot(root string) error {
-	// systemd 加入linux之后, mount namespace 就变成 shared by default, 所以你必须显示
-	// 声明你要这个新的mount namespace独立。
-	syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, "")
 	// 为了使当前root的老root和新root不在同一个文件系统下，把root重新Mount了一次
 	// bind mount是把相同的内容换了一个挂载点的挂载方法
 	if err := syscall.Mount(root, root, "bind", syscall.MS_BIND|syscall.MS_REC, ""); err != nil {
