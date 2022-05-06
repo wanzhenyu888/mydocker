@@ -31,7 +31,7 @@ func NewWorkSpace(volume, imageName, containerName string) {
 func MountVolume(volumeURLs []string, containerName string) error {
 	// 创建宿主机文件目录
 	parentUrl := volumeURLs[0]
-	if err := os.Mkdir(parentUrl, 0777); err != nil {
+	if err := os.Mkdir(parentUrl, 0o777); err != nil {
 		log.Infof("Mkdir parent dir %s error. %v", parentUrl, err)
 	}
 
@@ -39,7 +39,7 @@ func MountVolume(volumeURLs []string, containerName string) error {
 	containerUrl := volumeURLs[1]
 	mntURL := fmt.Sprintf(MntUrl, containerName)
 	containerVolumeURL := mntURL + containerUrl
-	if err := os.Mkdir(containerVolumeURL, 0777); err != nil {
+	if err := os.Mkdir(containerVolumeURL, 0o777); err != nil {
 		log.Infof("Mkdir container dir %s error. %v", containerVolumeURL, err)
 	}
 
@@ -63,7 +63,7 @@ func CreateReadOnlyLayer(imageName string) error {
 		return err
 	}
 	if exist == false {
-		if err := os.MkdirAll(unTarFolderUrl, 0622); err != nil {
+		if err := os.MkdirAll(unTarFolderUrl, 0o622); err != nil {
 			log.Errorf("Mkdir dir %s error. %v", unTarFolderUrl, err)
 		}
 		if _, err := exec.Command("tar", "-xvf", imageUrl, "-C", unTarFolderUrl).CombinedOutput(); err != nil {
@@ -77,7 +77,7 @@ func CreateReadOnlyLayer(imageName string) error {
 // 为容器创建可写层
 func CreateWriteLayer(containerName string) {
 	writeURL := fmt.Sprintf(WriteLayerUrl, containerName)
-	if err := os.MkdirAll(writeURL, 0777); err != nil {
+	if err := os.MkdirAll(writeURL, 0o777); err != nil {
 		log.Errorf("Mkdir write layer dir %s error. %v", writeURL, err)
 	}
 }
@@ -86,7 +86,7 @@ func CreateWriteLayer(containerName string) {
 func CreateMountPoint(containerName, imageName string) error {
 	// 创建挂载点
 	mntUrl := fmt.Sprintf(MntUrl, containerName)
-	if err := os.MkdirAll(mntUrl, 0777); err != nil {
+	if err := os.MkdirAll(mntUrl, 0o777); err != nil {
 		log.Errorf("Mkdir mountpoint dir %s error. %v", mntUrl, err)
 	}
 	// 将容器的只读层和读写层挂载

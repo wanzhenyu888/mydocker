@@ -16,13 +16,13 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string) {
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string, envSlice []string) {
 	containerID := randStringBytes(10)
 	if containerName == "" {
 		containerName = containerID
 	}
-	
-	parent, writePipe := container.NewParentProcess(tty, containerName, volume, imageName)
+
+	parent, writePipe := container.NewParentProcess(tty, containerName, volume, imageName, envSlice)
 	if parent == nil {
 		log.Errorf("New parent process error")
 		return
@@ -72,7 +72,7 @@ func recordContainerInfo(containerPID int, commandArray []string, containerName,
 		Command:     command,
 		CreatedTime: createTime,
 		Status:      container.RUNNING,
-		Volume: 	 volume,	
+		Volume:      volume,
 	}
 
 	jsonBytes, err := json.Marshal(containerInfo)
@@ -83,7 +83,7 @@ func recordContainerInfo(containerPID int, commandArray []string, containerName,
 	jsonStr := string(jsonBytes)
 
 	dirUrl := fmt.Sprintf(container.DefaultInfoLocation, containerName)
-	if err := os.MkdirAll(dirUrl, 0622); err != nil {
+	if err := os.MkdirAll(dirUrl, 0o622); err != nil {
 		log.Errorf("Mkdir error %s error %v", dirUrl, err)
 		return "", err
 	}

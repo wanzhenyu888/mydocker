@@ -16,9 +16,9 @@ var (
 	DefaultInfoLocation string = "/var/run/mydocker/%s"
 	ConfigName          string = "config.json"
 	ContainerLogFile    string = "container.log"
-	RootUrl 			string = "/root"
-	MntUrl 				string = "/root/mnt/%s"
-	WriteLayerUrl		string = "/root/writeLayer/%s"
+	RootUrl             string = "/root"
+	MntUrl              string = "/root/mnt/%s"
+	WriteLayerUrl       string = "/root/writeLayer/%s"
 )
 
 type ContainerInfo struct {
@@ -28,10 +28,10 @@ type ContainerInfo struct {
 	Command     string `json:"command"`    // 容器内init运行命令
 	CreatedTime string `json:"createTime"` // 创建时间
 	Status      string `json:"status"`     // 容器状态
-	Volume		string `json:"volume"`	   // 容器的数据卷
+	Volume      string `json:"volume"`     // 容器的数据卷
 }
 
-func NewParentProcess(tty bool, containerName , volume, imageName string) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, containerName, volume, imageName string, envSlice []string) (*exec.Cmd, *os.File) {
 	readPipe, writePipe, err := NewPipe()
 	if err != nil {
 		log.Errorf("New pipe error %v", err)
@@ -49,7 +49,7 @@ func NewParentProcess(tty bool, containerName , volume, imageName string) (*exec
 	} else {
 		// 生成容器对应目录的container.log文件
 		dirURL := fmt.Sprintf(DefaultInfoLocation, containerName)
-		if err := os.MkdirAll(dirURL, 0622); err != nil {
+		if err := os.MkdirAll(dirURL, 0o622); err != nil {
 			log.Errorf("NewParentProcess mkdir %s error %v", dirURL, err)
 		}
 		stdLogFilePath := dirURL + "/" + ContainerLogFile
@@ -63,6 +63,7 @@ func NewParentProcess(tty bool, containerName , volume, imageName string) (*exec
 	}
 
 	cmd.ExtraFiles = []*os.File{readPipe}
+	cmd.Env = append(os.Environ(), envSlice...)
 	NewWorkSpace(volume, imageName, containerName)
 	cmd.Dir = fmt.Sprintf(MntUrl, containerName)
 	return cmd, writePipe

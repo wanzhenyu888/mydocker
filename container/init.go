@@ -57,7 +57,7 @@ func setUpMount() {
 	// mount proc
 	// systemd加入linux后，mount namespace就变成shared by default，
 	// 所以你必须显式声明你要这个新的mount namespace独立
-	syscall.Mount("", "/", "", syscall.MS_PRIVATE | syscall.MS_REC, "")
+	syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, "")
 	pivotRoot(pwd)
 
 	defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
@@ -74,7 +74,7 @@ func pivotRoot(root string) error {
 	}
 	// 创建rootfs/.pivot_root存储old_root
 	pivotDir := filepath.Join(root, ".pivot_root")
-	if err := os.Mkdir(pivotDir, 0777); err != nil {
+	if err := os.Mkdir(pivotDir, 0o777); err != nil {
 		return err
 	}
 	// pivot_root到新的rootfs，现在老的old_root是挂载在rootfs/.pivot_root

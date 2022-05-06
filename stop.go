@@ -42,7 +42,7 @@ func stopContainer(containerName string) {
 	}
 	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
 	configFilePath := dirURL + "/" + container.ConfigName
-	if err := ioutil.WriteFile(configFilePath, newContentBytes, 0622); err != nil {
+	if err := ioutil.WriteFile(configFilePath, newContentBytes, 0o622); err != nil {
 		log.Errorf("Write file %s error", configFilePath, err)
 	}
 }
