@@ -12,11 +12,14 @@ import (
 	"github.com/wanzhenyu888/mydocker/cgroups"
 	"github.com/wanzhenyu888/mydocker/cgroups/subsystems"
 	"github.com/wanzhenyu888/mydocker/container"
+	"github.com/wanzhenyu888/mydocker/network"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string, envSlice []string) {
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string,
+	envSlice []string, nw string, portmapping []string,
+) {
 	containerID := randStringBytes(10)
 	if containerName == "" {
 		containerName = containerID
@@ -27,6 +30,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, co
 		log.Errorf("New parent process error")
 		return
 	}
+
 	if err := parent.Start(); err != nil {
 		log.Error(err)
 	}
@@ -43,6 +47,21 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, co
 	defer cgroupManager.Destroy()
 	cgroupManager.Set(res)
 	cgroupManager.Apply(parent.Process.Pid)
+
+	if nw != "" {
+		// 配置容器网络
+		network.Init()
+		containerInfo := &container.ContainerInfo{
+			Id:          containerID,
+			Pid:         strconv.Itoa(parent.Process.Pid),
+			Name:        containerName,
+			PortMapping: portmapping,
+		}
+		if err := network.Connect(nw, containerInfo); err != nil {
+			log.Errorf("Error Connect Network %v", err)
+			return
+		}
+	}
 
 	sendInitCommand(cmdArray, writePipe)
 	if tty {
